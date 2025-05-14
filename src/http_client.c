@@ -7,10 +7,29 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include "../include/failures.h"
+#include <sys/time.h> 
 
 #define return_defer(value, error) do {error_message = error; result = value; goto defer;} while(0)
 #define gem get_error_message
 #define CHUNK_SIZE 4096
+
+
+
+#define GROW_BUFFER(ptr, size, needed) do {                      \
+    if ((needed) > (size)) {                                     \
+        size_t new_size = (size) * 2;                            \
+        if (new_size < (needed)) new_size = (needed);            \
+        void* new_ptr = realloc((ptr), new_size);                \
+        if (!new_ptr) {                                          \
+            free(ptr);                                           \
+            (ptr) = NULL;                                        \
+            return -1;                                           \
+        }                                                        \
+        (ptr) = new_ptr;                                         \
+        (size) = new_size;                                       \
+    }                                                            \
+} while(0)
+
 
 // Function to create a socket and connect to a server
 int connect_to_server(const char* hostname, int port) {
@@ -67,23 +86,63 @@ int receive_http_response(int sockfd) {
     
     char buffer[CHUNK_SIZE]; 
     int total_bytes_recieved = 0;
-    int bytes_recieved = 0;
-    
+    size_t buffer_size = CHUNK_SIZE;
+    size_t data_used = 0; 
+    char* data = (char*)malloc(sizeof(char) * CHUNK_SIZE);
+
+    if (!data) return -1;
+
+    char temp_buffer[CHUNK_SIZE];
+    ssize_t bytes_received;
+
+    struct timeval timeout;
+    timeout.tv_sec = 3; 
+    timeout.tv_usec = 0;
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+
+        int content_length = -1;
+    int headers_ended = 0;
+    int body_bytes_received = 0;
+
     while(1){
-        bytes_recieved = recv(sockfd, buffer, CHUNK_SIZE, 0);
-        total_bytes_recieved += bytes_recieved;
-        if (bytes_recieved > 0) {
-            buffer[bytes_recieved] = '\0';
-            printf("Bytes received: %d\n", bytes_recieved);
-            printf("%s", buffer);
+        bytes_received = recv(sockfd, buffer, CHUNK_SIZE, 0);
+        total_bytes_recieved += bytes_received;
+
+        if (bytes_received > 0) {            
+            GROW_BUFFER(data, buffer_size, data_used + bytes_received + 1);
+            memcpy(data + data_used, buffer, bytes_received + 1);
+            data_used += bytes_received;
+            data[data_used] = '\0';
+
+            if (content_length == -1) {
+                char* cl_pos = strstr(data, "Content-Length: ");
+                if (cl_pos) {
+                    content_length = atoi(cl_pos + 16);
+                }
+            }            
+            if (!headers_ended) {
+                char* end_headers = strstr(data, "\r\n\r\n");
+                if (end_headers) {
+                    headers_ended = 1;
+                    body_bytes_received = data_used - ((end_headers + 4) - data);
+                }
+            }
+            if (headers_ended && content_length != -1) {
+                if (body_bytes_received >= content_length) break;
+            }
+
+            printf("Bytes received: %d\n", bytes_received);
         } 
-        else if (bytes_recieved == 0) {
+        else if (bytes_received == 0) {
             printf("Connection closed by server\n");
             break;
         }
         else { result = -1; perror(gem(ERR_BUFF_OVERFLOW)); break; }
+
     }
-    
+
+    printf("%s", data);
+
     
     return result;
 }
