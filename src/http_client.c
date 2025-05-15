@@ -8,12 +8,11 @@
 #include <netdb.h>
 #include "../include/failures.h"
 #include <sys/time.h> 
+#include "../include/conduit.h"
 
 #define return_defer(value, error) do {error_message = error; result = value; goto defer;} while(0)
 #define gem get_error_message
 #define CHUNK_SIZE 4096
-
-
 
 #define GROW_BUFFER(ptr, size, needed) do {                      \
     if ((needed) > (size)) {                                     \
@@ -23,7 +22,7 @@
         if (!new_ptr) {                                          \
             free(ptr);                                           \
             (ptr) = NULL;                                        \
-            return -1;                                           \
+            return NULL;                                           \
         }                                                        \
         (ptr) = new_ptr;                                         \
         (size) = new_size;                                       \
@@ -80,7 +79,7 @@ int send_http_request(int sockfd, const char* hostname, const char* path) {
 }
 
 // Function to receive and display HTTP response
-int receive_http_response(int sockfd) {
+ConduitResponse* receive_http_response(int sockfd) {
     int result = 0;
     const char* error_message = NULL;
     
@@ -90,7 +89,7 @@ int receive_http_response(int sockfd) {
     size_t data_used = 0; 
     char* data = (char*)malloc(sizeof(char) * CHUNK_SIZE);
 
-    if (!data) return -1;
+    if (!data) return NULL;
 
     char temp_buffer[CHUNK_SIZE];
     ssize_t bytes_received;
@@ -110,7 +109,7 @@ int receive_http_response(int sockfd) {
 
         if (bytes_received > 0) {            
             GROW_BUFFER(data, buffer_size, data_used + bytes_received + 1);
-            memcpy(data + data_used, buffer, bytes_received + 1);
+            memcpy(data + data_used, buffer, bytes_received);
             data_used += bytes_received;
             data[data_used] = '\0';
 
@@ -140,11 +139,66 @@ int receive_http_response(int sockfd) {
         else { result = -1; perror(gem(ERR_BUFF_OVERFLOW)); break; }
 
     }
+    ConduitResponse* response = malloc(sizeof(ConduitResponse));
+    if (!response) {
+        free(data);
+        return NULL;
+    }
 
-    printf("%s", data);
+    response->status_code = 0;
+    response->body = NULL;
+    response->headers = NULL;
+    response->content_type = NULL;
+
+    // Status Line: HTTP/1.1 200 OK
+    char* status_line = data;
+    char* status_end = strstr(data, "\r\n");
+    if(status_end){
+        char* status_start = strstr(status_line, " ");
+        if (status_start) {
+            response->status_code = atoi(status_start + 1);
+        } 
+    }
+
+    // Headers
+    char* end_headers = strstr(data, "\r\n\r\n");
+
+    if(end_headers){
+        size_t headers_length = end_headers - data;
+        response->headers = malloc(headers_length + 1);
+        if (response->headers) {
+            memcpy(response->headers, data, headers_length);
+            response->headers[headers_length] = '\0';
+        }
+
+       char* ct_start = strstr(data, "Content-Type: ");
+        if (ct_start) {
+            ct_start += 14;
+            char* ct_end = strstr(ct_start, "\r\n");
+            if (ct_end) {
+                size_t ct_length = ct_end - ct_start;
+                response->content_type = malloc(ct_length + 1);
+                if (response->content_type) {
+                    memcpy(response->content_type, ct_start, ct_length);
+                    response->content_type[ct_length] = '\0';
+                }
+            }
+        }
+
+        // Body starts after the blank line
+        char* body_start = end_headers + 4;
+        size_t body_length = data_used - (body_start - data);
+        response->body = malloc(body_length + 1);
+        if (response->body) {
+            memcpy(response->body, body_start, body_length);
+            response->body[body_length] = '\0';
+        }
+
+        free(data);
+    }
 
     
-    return result;
+    return response;
 }
 
 // Main function to tie everything together

@@ -16,6 +16,13 @@ extern "C" {
 #endif
 
 
+typedef struct {
+    int status_code;     
+    char* body;        
+    char* headers;    
+    char* content_type;
+} ConduitResponse;
+
 /**
  * @brief Connect to a server using a hostname and port
  *
@@ -41,7 +48,7 @@ int conduit_send_request(int sockfd, const char* hostname, const char* path);
  * @param sockfd Socket file descriptor from conduit_connect
  * @return 0 if successful, negative error code otherwise
  */
-int conduit_receive_response(int sockfd);
+ConduitResponse* conduit_receive_response(int sockfd);
 
 /**
  * @brief Get a string description for an error code
@@ -49,7 +56,6 @@ int conduit_receive_response(int sockfd);
  * @param error The error code returned from conduit functions
  * @return A string describing the error
  */
-
 
 #ifdef __cplusplus
 }

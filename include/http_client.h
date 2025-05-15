@@ -3,6 +3,6 @@
 
 int connect_to_server(const char* hostname, int port);
 int send_http_request(int sockfd, const char* hostname, const char* path);
-int receive_http_response(int sockfd);
+ConduitResponse* receive_http_response(int sockfd);
 
 #endif

@@ -9,7 +9,7 @@ int conduit_send_request(int sockfd, const char* hostname, const char* path) {
     return send_http_request(sockfd, hostname, path);
 }
 
-int conduit_receive_response(int sockfd) {
+ConduitResponse* conduit_receive_response(int sockfd) {
     return receive_http_response(sockfd);
 }
 
