@@ -12,20 +12,6 @@ A lightweight HTTP client library written in C.
 - Configurable timeouts
 - Detailed error reporting
 
-## Architecture
-```mermaid
-graph TD
- A[Application] --> B[Conduit API]
- B --> C[Internal Implementation]
- B --> F[JSON Parser]
- C --> D[Socket Layer]
- D --> E[Network]
- style A fill:#f9f,stroke:#333,stroke-width:2px
- style B fill:#bbf,stroke:#333,stroke-width:2px
- style C fill:#ddf,stroke:#333,stroke-width:2px
- style F fill:#ddf,stroke:#333,stroke-width:2px
-```
-
 ## Requirements
 - C compiler (gcc, clang, etc.)
 - CMake 3.10 or higher
@@ -189,19 +175,5 @@ typedef struct {
     JsonValue* json;      // Parsed JSON (if response is JSON)
 } ConduitResponse;
 ```
-
-## Library Structure
-```mermaid
-graph LR
- A[conduit.h<br/>Public API] --> B[conduit.c<br/>API Implementation]
- A --> J[json_parser.h<br/>JSON API]
- B --> C[http_client.c<br/>Internal Implementation]
- B --> D[failures.c<br/>Error Handling]
- C --> J[json_parser.c<br/>JSON Parser]
- style A fill:#bbf,stroke:#333,stroke-width:2px
- style B fill:#ddf,stroke:#333,stroke-width:2px
- style J fill:#fdd,stroke:#333,stroke-width:2px
-```
-
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details.
