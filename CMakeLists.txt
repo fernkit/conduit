@@ -18,6 +18,7 @@ set(LIBRARY_SOURCES
     src/conduit.c
     src/http_client.c
     src/failures.c
+    src/json_parser.c
 )
 
 # Create library target

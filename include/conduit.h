@@ -14,6 +14,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include "json_parser.h"
 
 
 typedef struct {
@@ -21,6 +22,7 @@ typedef struct {
     char* body;        
     char* headers;    
     char* content_type;
+    JsonValue* json;
 } ConduitResponse;
 
 /**

@@ -10,9 +10,14 @@
 #include <sys/time.h> 
 #include "../include/conduit.h"
 
-#define return_defer(value, error) do {error_message = error; result = value; goto defer;} while(0)
+#define return_defer(value, error) do {error_message = error; result = value; has_error = 1; goto defer;} while(0)
 #define gem get_error_message
 #define CHUNK_SIZE 4096
+
+#define HTTP_DEFAULT_TIMEOUT_SEC 3
+#define HTTP_HEADER_CONTENT_TYPE "Content-Type: "
+#define HTTP_HEADER_CONTENT_LENGTH "Content-Length: "
+#define HTTP_HEADER_DATA_TYPE "application/json;"
 
 #define GROW_BUFFER(ptr, size, needed) do {                      \
     if ((needed) > (size)) {                                     \
@@ -22,7 +27,7 @@
         if (!new_ptr) {                                          \
             free(ptr);                                           \
             (ptr) = NULL;                                        \
-            return NULL;                                           \
+            return NULL;                                         \
         }                                                        \
         (ptr) = new_ptr;                                         \
         (size) = new_size;                                       \
@@ -30,6 +35,11 @@
 } while(0)
 
 
+void log_error(const char* context, const char* message) {
+    if (message != NULL) {
+        fprintf(stderr, "[ERROR] %s: %s\n", context, message);
+    }
+}
 // Function to create a socket and connect to a server
 int connect_to_server(const char* hostname, int port) {
     struct sockaddr_in server_addr;
@@ -37,6 +47,7 @@ int connect_to_server(const char* hostname, int port) {
 
     int result = 0;
     const char* error_message = NULL;
+    int has_error = 0;
 
     if (server == NULL) return_defer(-1, gem(ERR_HOSTNAME_RESOLUTION));
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -55,7 +66,7 @@ int connect_to_server(const char* hostname, int port) {
 
     defer: 
         if(sockfd >= 0) close(sockfd);
-        perror(error_message);
+        log_error("connect_to_server", error_message);
         return result;    
 }
 
@@ -64,6 +75,7 @@ int send_http_request(int sockfd, const char* hostname, const char* path) {
 
     int result = 0;
     const char* error_message = NULL;
+    int has_error = 0;
 
     char request[2048];
     int request_length = snprintf(request, sizeof(request), 
@@ -74,7 +86,7 @@ int send_http_request(int sockfd, const char* hostname, const char* path) {
     if(bytes_sent <= 0) return_defer(-1, gem(ERR_SEND_HTTP_REQ));
 
     defer:
-        perror(error_message);
+        log_error("send_http_request", error_message);
         return result; 
 }
 
@@ -84,7 +96,7 @@ ConduitResponse* receive_http_response(int sockfd) {
     const char* error_message = NULL;
     
     char buffer[CHUNK_SIZE]; 
-    int total_bytes_recieved = 0;
+    int total_bytes_received = 0;  // Not "recieved"
     size_t buffer_size = CHUNK_SIZE;
     size_t data_used = 0; 
     char* data = (char*)malloc(sizeof(char) * CHUNK_SIZE);
@@ -95,7 +107,7 @@ ConduitResponse* receive_http_response(int sockfd) {
     ssize_t bytes_received;
 
     struct timeval timeout;
-    timeout.tv_sec = 3; 
+    timeout.tv_sec = HTTP_DEFAULT_TIMEOUT_SEC; 
     timeout.tv_usec = 0;
     setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 
@@ -105,7 +117,7 @@ ConduitResponse* receive_http_response(int sockfd) {
 
     while(1){
         bytes_received = recv(sockfd, buffer, CHUNK_SIZE, 0);
-        total_bytes_recieved += bytes_received;
+        total_bytes_received += bytes_received;
 
         if (bytes_received > 0) {            
             GROW_BUFFER(data, buffer_size, data_used + bytes_received + 1);
@@ -114,7 +126,7 @@ ConduitResponse* receive_http_response(int sockfd) {
             data[data_used] = '\0';
 
             if (content_length == -1) {
-                char* cl_pos = strstr(data, "Content-Length: ");
+                char* cl_pos = strstr(data, HTTP_HEADER_CONTENT_LENGTH);
                 if (cl_pos) {
                     content_length = atoi(cl_pos + 16);
                 }
@@ -136,7 +148,7 @@ ConduitResponse* receive_http_response(int sockfd) {
             printf("Connection closed by server\n");
             break;
         }
-        else { result = -1; perror(gem(ERR_BUFF_OVERFLOW)); break; }
+        else { result = -1; log_error("receive_http_response", gem(ERR_BUFF_OVERFLOW)); break; }
 
     }
     ConduitResponse* response = malloc(sizeof(ConduitResponse));
@@ -171,7 +183,7 @@ ConduitResponse* receive_http_response(int sockfd) {
             response->headers[headers_length] = '\0';
         }
 
-       char* ct_start = strstr(data, "Content-Type: ");
+       char* ct_start = strstr(data, HTTP_HEADER_CONTENT_TYPE);
         if (ct_start) {
             ct_start += 14;
             char* ct_end = strstr(ct_start, "\r\n");
@@ -194,11 +206,33 @@ ConduitResponse* receive_http_response(int sockfd) {
             response->body[body_length] = '\0';
         }
 
+        if (response->body && response->content_type && 
+        strstr(response->content_type, HTTP_HEADER_DATA_TYPE) == response->content_type) {
+            response->json = conduit_parse_json(response->body);
+        } else {
+            response->json = NULL;
+        }
+
+        if (response->json) {
+            printf("JSON parsing successful\n");
+        } else {
+            printf("JSON parsing failed\n");
+        }
+
         free(data);
     }
 
     
     return response;
+}
+
+void conduit_free_response(ConduitResponse* response) {
+    if (!response) return;
+    free(response->headers);
+    free(response->body);
+    free(response->content_type);
+    if (response->json) json_free_value(response->json);
+    free(response);
 }
 
 // Main function to tie everything together

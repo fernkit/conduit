@@ -24,19 +24,24 @@ int main(int argc, char* argv[]) {
     
     ConduitResponse* response = conduit_receive_response(sockfd);
     if (!response) {
-        printf("Failed to get response\n");
+        printf("Failed to receive response\n");
         return 1;
     }
-    
-    printf("Status code: %d\n", response->status_code);
-    if (response->body) {
-        printf("Body: %s\n", response->body);
+    if (response->json && response->json->type == JSON_OBJECT) {
+        JsonObject* obj = response->json->value.object;
+        
+        int userId = json_get_int(obj, "userId");
+        int id = json_get_int(obj, "id");
+        const char* title = json_get_string(obj, "title");
+        int completed = json_get_bool(obj, "completed");
+        
+        printf("User ID: %d\n", userId);
+        printf("ID: %d\n", id);
+        printf("Title: %s\n", title);
+        printf("Completed: %s\n", completed ? "true" : "false");
     }
-    
-    if (response->headers) free(response->headers);
-    if (response->body) free(response->body);
-    if (response->content_type) free(response->content_type);
-    free(response);
-    
+
+    conduit_free_response(response);
+        
     return 0;
 }
