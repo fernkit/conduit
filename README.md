@@ -2,23 +2,84 @@
 <p align="center">
  <img src="assets/logo.png" alt="Conduit Logo" width="200"/>
 </p>
-A lightweight, zero-dependency HTTP client library written in C.
+A lightweight HTTP client library written in C with no external library dependencies.
 
 ## Features
 - Simple API for making HTTP requests
 - Support for GET and POST requests
 - JSON sending and receiving capabilities
 - Built-in JSON parsing and creation
-- Zero external dependencies - pure C implementation using only standard libraries
+- No external library dependencies - uses only standard C libraries and POSIX APIs
 - Socket-based communication
 - Configurable timeouts
 - Detailed error reporting
 
 ## Requirements
 - C compiler (gcc, clang, etc.)
+- POSIX-compatible operating system (Linux, macOS, *BSD, etc.)
 - CMake 3.10 or higher
 
-## Building
+## Installation
+
+### Using the Installation Script
+For quick installation on Linux systems:
+```bash
+./install.sh
+```
+
+### Manual Installation with CMake
+```bash
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make
+sudo make install
+sudo ldconfig
+```
+
+### Using Conduit in Your CMake Project
+After installation, you can use Conduit in your CMake project:
+```cmake
+find_package(conduit REQUIRED)
+add_executable(your_app your_app.c)
+target_link_libraries(your_app PRIVATE Conduit::conduit)
+```
+
+### Using Conduit with pkg-config
+For non-CMake projects, you can use pkg-config:
+```bash
+gcc -o your_app your_app.c $(pkg-config --cflags --libs conduit)
+```
+
+## Project Structure
+```
+conduit/
+├── include/          # Public header files
+│   ├── conduit.h     # Main library interface
+│   ├── failures.h    # Error handling definitions
+│   ├── http_client.h # HTTP client implementation
+│   └── json_parser.h # JSON parsing utilities
+├── src/              # Implementation files
+│   ├── conduit.c
+│   ├── failures.c
+│   ├── http_client.c
+│   └── json_parser.c
+├── examples/         # Example applications
+│   ├── simple_get.c
+│   └── simple_post.c
+├── cmake/            # CMake configuration files
+│   └── conduit-config.cmake.in
+├── conduit.pc.in     # pkg-config template
+└── install.sh        # Installation script
+```
+
+## Building from Source
+```bash
+mkdir build
+cd build
+cmake ..
+make
+```
 ```bash
 mkdir build
 cd build

@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "../include/conduit.h"
+#include <conduit.h>
 
 int main(int argc, char* argv[]) {
     const char* hostname = "jsonplaceholder.typicode.com";

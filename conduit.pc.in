@@ -1,0 +1,10 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include/conduit
+
+Name: conduit
+Description: A lightweight HTTP client library written in C
+Version: @PROJECT_VERSION@
+Libs: -L${libdir} -lconduit
+Cflags: -I${includedir}
