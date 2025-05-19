@@ -96,7 +96,7 @@ ConduitResponse* receive_http_response(int sockfd) {
     const char* error_message = NULL;
     
     char buffer[CHUNK_SIZE]; 
-    int total_bytes_received = 0;  // Not "recieved"
+    int total_bytes_received = 0; 
     size_t buffer_size = CHUNK_SIZE;
     size_t data_used = 0; 
     char* data = (char*)malloc(sizeof(char) * CHUNK_SIZE);
@@ -233,6 +233,67 @@ void conduit_free_response(ConduitResponse* response) {
     free(response->content_type);
     if (response->json) json_free_value(response->json);
     free(response);
+}
+
+int send_json_post_request(int sockfd, const char* hostname, const char* path, const char* json_body) {
+    int result = 0;
+    const char* error_message = NULL;
+    int has_error = 0;
+
+    char header[4096];
+    int header_length = snprintf(header, sizeof(header),
+                             "POST %s HTTP/1.1\r\n"
+                             "Host: %s\r\n"
+                             "Content-Type: application/json\r\n"
+                             "Content-Length: %zu\r\n"
+                             "\r\n",
+                             path, hostname, strlen(json_body));
+    
+    if (header_length >= (int)sizeof(header) - 1) 
+        return_defer(-1, gem(ERR_BUFF_OVERFLOW));
+    
+    ssize_t bytes_sent = send(sockfd, header, header_length, 0);
+    if (bytes_sent <= 0) 
+        return_defer(-1, gem(ERR_SEND_HTTP_REQ));
+    
+    bytes_sent = send(sockfd, json_body, strlen(json_body), 0);
+    if (bytes_sent <= 0) 
+        return_defer(-1, gem(ERR_SEND_HTTP_REQ));
+
+defer:
+    log_error("send_json_post_request", error_message);
+    return result;
+}
+
+int send_post_request(int sockfd, const char* hostname, const char* path, 
+                     const char* content_type, const char* body, size_t body_length) {
+    int result = 0;
+    const char* error_message = NULL;
+    int has_error = 0;
+
+    char header[4096];
+    int header_length = snprintf(header, sizeof(header),
+                             "POST %s HTTP/1.1\r\n"
+                             "Host: %s\r\n"
+                             "Content-Type: %s\r\n"
+                             "Content-Length: %zu\r\n"
+                             "\r\n",
+                             path, hostname, content_type, body_length);
+    
+    if (header_length >= (int)sizeof(header) - 1) 
+        return_defer(-1, gem(ERR_BUFF_OVERFLOW));
+    
+    ssize_t bytes_sent = send(sockfd, header, header_length, 0);
+    if (bytes_sent <= 0) 
+        return_defer(-1, gem(ERR_SEND_HTTP_REQ));
+    
+    bytes_sent = send(sockfd, body, body_length, 0);
+    if (bytes_sent <= 0) 
+        return_defer(-1, gem(ERR_SEND_HTTP_REQ));
+
+defer:
+    log_error("send_post_request", error_message);
+    return result;
 }
 
 // Main function to tie everything together

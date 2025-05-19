@@ -163,14 +163,13 @@ JsonValue* conduit_parse_json(const char* json_string) {
 
 
 JsonValue* json_get_value(JsonObject* obj, const char* key) {
-    if (!obj) return NULL;
+    if (!obj || !key) return NULL; 
     
     for (int i = 0; i < obj->count; i++) {
-        if (strcmp(obj->keys[i], key) == 0) {
+        if (obj->keys[i] && strcmp(obj->keys[i], key) == 0) { 
             return obj->values[i];
         }
     }
-    
     return NULL;
 }
 
@@ -236,4 +235,56 @@ void json_free_value(JsonValue* value) {
     }
     
     free(value);
+}
+
+
+
+JsonValue* json_create_null() {
+    JsonValue* value = malloc(sizeof(JsonValue));
+    if (!value) return NULL;
+    value->type = JSON_NULL;
+    return value;
+}
+
+JsonValue* json_create_boolean(int boolean_value) {
+    JsonValue* value = malloc(sizeof(JsonValue));
+    if (!value) return NULL;
+    value->type = JSON_BOOLEAN;
+    value->value.boolean = boolean_value;
+    return value;
+}
+
+JsonValue* json_create_number(double number_value) {
+    JsonValue* value = malloc(sizeof(JsonValue));
+    if (!value) return NULL;
+    value->type = JSON_NUMBER;
+    value->value.number = number_value;
+    return value;
+}
+
+JsonValue* json_create_string(const char* string_value) {
+    JsonValue* value = malloc(sizeof(JsonValue));
+    if (!value) return NULL;
+    value->type = JSON_STRING;
+    value->value.string = strdup(string_value);
+    return value;
+}
+
+JsonValue* json_create_object() {
+    JsonValue* value = malloc(sizeof(JsonValue));
+    if (!value) return NULL;
+    
+    value->type = JSON_OBJECT;
+    value->value.object = malloc(sizeof(JsonObject));
+    
+    if (!value->value.object) {
+        free(value);
+        return NULL;
+    }
+    
+    value->value.object->keys = NULL;
+    value->value.object->values = NULL;
+    value->value.object->count = 0;
+    
+    return value;
 }

@@ -32,8 +32,8 @@ target_include_directories(conduit
 )
 
 # Create example executable
-add_executable(simple_get examples/simple_get.c)
-target_link_libraries(simple_get PRIVATE conduit)
+add_executable(simple_post examples/simple_post.c)
+target_link_libraries(simple_post PRIVATE conduit)
 
 # Installation rules
 install(TARGETS conduit

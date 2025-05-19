@@ -13,3 +13,6 @@ ConduitResponse* conduit_receive_response(int sockfd) {
     return receive_http_response(sockfd);
 }
 
+int conduit_post_json(int sockfd, const char* hostname, const char* path, const char* json_body) {
+    return send_json_post_request(sockfd, hostname, path, json_body);
+}

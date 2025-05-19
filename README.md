@@ -6,8 +6,9 @@ A lightweight HTTP client library written in C.
 
 ## Features
 - Simple API for making HTTP requests
-- Support for GET requests
-- Built-in JSON parsing capabilities
+- Support for GET and POST requests
+- JSON sending and receiving capabilities
+- Built-in JSON parsing and creation
 - Socket-based implementation with no external dependencies
 - Configurable timeouts
 - Detailed error reporting
@@ -30,19 +31,32 @@ sequenceDiagram
  participant App as Application
  participant Conduit as Conduit Library
  participant Server as Web Server
+ 
+ %% GET Request Flow
  App->>Conduit: conduit_connect(hostname, port)
  Conduit->>Server: TCP Connection
  Server-->>Conduit: Connection Established
  Conduit-->>App: socket descriptor
+ 
  App->>Conduit: conduit_send_request(sockfd, hostname, path)
  Conduit->>Server: HTTP GET Request
  App->>Conduit: conduit_receive_response(sockfd)
  Server-->>Conduit: HTTP Response
  Conduit-->>App: ConduitResponse structure
+ 
+ %% POST Request Flow
+ App->>Conduit: conduit_post_json(sockfd, hostname, path, json_body)
+ Conduit->>Server: HTTP POST Request with JSON
+ App->>Conduit: conduit_receive_response(sockfd)
+ Server-->>Conduit: HTTP Response
+ Conduit-->>App: ConduitResponse structure
+ 
  App->>Conduit: conduit_free_response(response)
 ```
 
-## Usage Example
+## Usage Examples
+
+### GET Request Example
 ```c
 #include <stdio.h>
 #include <conduit.h>
@@ -93,6 +107,46 @@ int main() {
 }
 ```
 
+### POST Request Example
+```c
+#include <stdio.h>
+#include <conduit.h>
+
+int main() {
+    // Connect to a server
+    int sockfd = conduit_connect("jsonplaceholder.typicode.com", 80);
+    if (sockfd < 0) {
+        fprintf(stderr, "Connection failed\n");
+        return 1;
+    }
+    
+    // Prepare JSON data to send
+    const char* json_body = "{\"title\":\"foo\",\"body\":\"bar\",\"userId\":1}";
+    
+    // Send a POST request with JSON data
+    if (conduit_post_json(sockfd, "jsonplaceholder.typicode.com", "/posts", json_body) < 0) {
+        fprintf(stderr, "Failed to send POST request\n");
+        return 1;
+    }
+    
+    // Receive the response
+    ConduitResponse* response = conduit_receive_response(sockfd);
+    if (!response) {
+        fprintf(stderr, "Failed to receive response\n");
+        return 1;
+    }
+    
+    // Process the response data
+    printf("Status code: %d\n", response->status_code);
+    printf("Response body: %s\n", response->body);
+    
+    // Free the response resources
+    conduit_free_response(response);
+    
+    return 0;
+}
+```
+
 ## API Reference
 
 ### conduit_connect
@@ -119,6 +173,22 @@ Sends an HTTP GET request to the server.
 - `sockfd`: The socket file descriptor from `conduit_connect`
 - `hostname`: The hostname for the Host header
 - `path`: The path for the request URL
+
+**Returns:**
+- 0 if successful
+- A negative error code if an error occurs
+
+### conduit_post_json
+```c
+int conduit_post_json(int sockfd, const char* hostname, const char* path, const char* json_body);
+```
+Sends an HTTP POST request with a JSON body to the server.
+
+**Parameters:**
+- `sockfd`: The socket file descriptor from `conduit_connect`
+- `hostname`: The hostname for the Host header
+- `path`: The path for the request URL
+- `json_body`: The JSON data to send as a string
 
 **Returns:**
 - 0 if successful
@@ -152,17 +222,35 @@ Frees all memory allocated for a response.
 int json_get_int(JsonObject* obj, const char* key);
 const char* json_get_string(JsonObject* obj, const char* key);
 int json_get_bool(JsonObject* obj, const char* key);
+JsonValue* conduit_parse_json(const char* json_string);
 ```
 
-Extract values from a parsed JSON object.
+Extract values from a parsed JSON object or parse a JSON string.
 
 **Parameters:**
 - `obj`: The JSON object to extract from
 - `key`: The key to look up
+- `json_string`: The JSON string to parse
 
 **Returns:**
 - The requested value if found
 - Default value (0, NULL, or false) if not found or wrong type
+- Parsed JSON value pointer for `conduit_parse_json`
+
+### JSON Creation Functions
+
+```c
+JsonValue* json_create_null();
+JsonValue* json_create_boolean(int boolean_value);
+JsonValue* json_create_number(double number_value);
+JsonValue* json_create_string(const char* string_value);
+JsonValue* json_create_object();
+```
+
+Create JSON values for building JSON data structures.
+
+**Returns:**
+- A pointer to a new JsonValue structure of the specified type
 
 ## Response Structure
 
@@ -175,5 +263,23 @@ typedef struct {
     JsonValue* json;      // Parsed JSON (if response is JSON)
 } ConduitResponse;
 ```
+
+## Error Handling
+
+The library provides detailed error reporting via error codes and messages:
+
+```c
+typedef enum {
+    ERR_HOSTNAME_RESOLUTION,
+    ERR_SOCKET_CREATION,
+    ERR_SEVER_CONNECTION,
+    ERR_SEND_HTTP_REQ,
+    ERR_BUFF_OVERFLOW,
+    ERR_RECEIVING_DATA
+} ErrorCode;
+
+const char* get_error_message(ErrorCode code);
+```
+
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details.

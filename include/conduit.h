@@ -53,12 +53,14 @@ int conduit_send_request(int sockfd, const char* hostname, const char* path);
 ConduitResponse* conduit_receive_response(int sockfd);
 
 /**
- * @brief Get a string description for an error code
- *
- * @param error The error code returned from conduit functions
- * @return A string describing the error
+ * Sends an HTTP POST request with a JSON body
+ * @param sockfd Socket file descriptor from conduit_connect
+ * @param hostname The server hostname
+ * @param path The request path
+ * @param json_body The JSON request body as a string
+ * @return 0 on success, negative value on error
  */
-
+int conduit_post_json(int sockfd, const char* hostname, const char* path, const char* json_body);
 #ifdef __cplusplus
 }
 #endif
