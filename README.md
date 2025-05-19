@@ -2,14 +2,15 @@
 <p align="center">
  <img src="assets/logo.png" alt="Conduit Logo" width="200"/>
 </p>
-A lightweight HTTP client library written in C.
+A lightweight, zero-dependency HTTP client library written in C.
 
 ## Features
 - Simple API for making HTTP requests
 - Support for GET and POST requests
 - JSON sending and receiving capabilities
 - Built-in JSON parsing and creation
-- Socket-based implementation with no external dependencies
+- Zero external dependencies - pure C implementation using only standard libraries
+- Socket-based communication
 - Configurable timeouts
 - Detailed error reporting
 
