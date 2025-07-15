@@ -1,53 +1,194 @@
-# Conduit
+# Conduit HTTP Client Library
+
 <p align="center">
  <img src="assets/logo.png" alt="Conduit Logo" width="200"/>
 </p>
-A lightweight HTTP client library written in C with no external library dependencies.
 
-## Features
-- Simple API for making HTTP requests
-- Support for GET and POST requests
-- JSON sending and receiving capabilities
-- Built-in JSON parsing and creation
-- No external library dependencies - uses only standard C libraries and POSIX APIs
-- Socket-based communication
-- Configurable timeouts
-- Detailed error reporting
+A powerful and flexible HTTP client library available in both **C** and **modern C++** implementations. Choose the version that best fits your project's needs.
 
-## Requirements
-- C compiler (gcc, clang, etc.)
-- POSIX-compatible operating system (Linux, macOS, *BSD, etc.)
-- CMake 3.10 or higher
+## Quick Start
 
-## Installation
+### C Version (Original)
+```c
+#include <conduit.h>
 
-### Using the Installation Script
-For quick installation on Linux systems:
-```bash
-./install.sh
+int main() {
+    int sockfd = conduit_connect("httpbin.org", 80);
+    if (sockfd > 0) {
+        conduit_send_request(sockfd, "httpbin.org", "/get");
+        ConduitResponse* response = conduit_receive_response(sockfd);
+        printf("Status: %d\n", response->status_code);
+        conduit_free_response(response);
+    }
+    return 0;
+}
 ```
 
-### Manual Installation with CMake
+### C++ Version (Modern)
+```cpp
+#include <conduit.hpp>
+
+int main() {
+    try {
+        conduit::HttpClient client;
+        auto response = client.get("http://httpbin.org/get");
+        std::cout << "Status: " << response.status_code() << std::endl;
+    } catch (const conduit::HttpException& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+    return 0;
+}
+```
+
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Usage Examples](#usage-examples)
+- [API Reference](#api-reference)
+- [Building from Source](#building-from-source)
+- [Testing](#testing)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Features
+
+### Common Features (Both Versions)
+- **HTTP GET/POST Requests** - Full HTTP/1.1 support
+- **JSON Support** - Built-in JSON parsing and serialization
+- **No External Dependencies** - Uses only standard libraries
+- **Cross-Platform** - Works on Linux, macOS, and other POSIX systems
+- **Lightweight** - Minimal footprint and fast performance
+- **Configurable Timeouts** - Set custom request timeouts
+- **Detailed Error Handling** - Comprehensive error reporting
+
+### C Version Features
+- **C99 Compatible** - Works with older compilers
+- **Simple API** - Straightforward function-based interface
+- **Manual Memory Management** - Full control over resources
+- **Small Binary Size** - Optimized for embedded systems
+
+### C++ Version Features
+- **Modern C++17** - Uses latest C++ features
+- **RAII Resource Management** - Automatic cleanup
+- **Exception Safety** - Proper error handling with exceptions
+- **STL Integration** - Works with standard containers
+- **Type Safety** - Compile-time type checking
+- **Persistent Connections** - Reuse connections for multiple requests
+- **Smart Pointers** - Memory-safe by design
+
+## 🛠 Installation
+
+### Quick Installation (Recommended)
+
+#### C Version
 ```bash
-mkdir build
-cd build
+# Clone the repository
+git clone https://github.com/your-username/conduit.git
+cd conduit
+
+# Run the C installation script
+./install-c.sh
+```
+
+#### C++ Version
+```bash
+# Clone the repository
+git clone https://github.com/your-username/conduit.git
+cd conduit
+
+# Run the C++ installation script
+./install-cpp.sh
+```
+
+### Manual Installation
+
+#### C Version
+```bash
+mkdir build-c && cd build-c
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make
 sudo make install
-sudo ldconfig
+sudo ldconfig  # Linux only
 ```
 
-### Using Conduit in Your CMake Project
-After installation, you can use Conduit in your CMake project:
-```cmake
-find_package(conduit REQUIRED)
-add_executable(your_app your_app.c)
-target_link_libraries(your_app PRIVATE Conduit::conduit)
-```
-
-### Using Conduit with pkg-config
-For non-CMake projects, you can use pkg-config:
+#### C++ Version
 ```bash
+mkdir build-cpp && cd build-cpp
+# Temporarily use the C++ CMakeLists.txt
+cp ../CMakeLists-cpp.txt ../CMakeLists.txt
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make
+sudo make install
+sudo ldconfig  # Linux only
+```
+sudo ldconfig  # Linux only
+```
+
+## Usage Examples
+
+### C Version Examples
+
+#### Basic GET Request
+```c
+#include <conduit.h>
+#include <stdio.h>
+
+int main() {
+    int sockfd = conduit_connect("jsonplaceholder.typicode.com", 80);
+    if (sockfd < 0) {
+        printf("Connection failed\n");
+        return 1;
+    }
+    
+    if (conduit_send_request(sockfd, "jsonplaceholder.typicode.com", "/posts/1") < 0) {
+        printf("Request failed\n");
+        return 1;
+    }
+    
+    ConduitResponse* response = conduit_receive_response(sockfd);
+    if (response) {
+        printf("Status: %d\n", response->status_code);
+        printf("Body: %s\n", response->body);
+        
+        // Parse JSON response
+        if (response->json) {
+            JsonObject* obj = response->json->value.object;
+            const char* title = json_get_string(obj, "title");
+            int userId = json_get_int(obj, "userId");
+            
+            printf("Title: %s\n", title);
+            printf("User ID: %d\n", userId);
+        }
+        
+        conduit_free_response(response);
+    }
+    
+    return 0;
+}
+```
+
+#### POST Request with JSON
+```c
+#include <conduit.h>
+
+int main() {
+    int sockfd = conduit_connect("jsonplaceholder.typicode.com", 80);
+    if (sockfd < 0) return 1;
+    
+    const char* json_body = "{"
+        "\"title\": \"My Post\","
+        "\"body\": \"This is a test post\","
+        "\"userId\": 1"
+    "}";
+    
+    if (conduit_post_json(sockfd, "jsonplaceholder.typicode.com", "/posts", json_body) == 0) {
+        printf("POST successful\n");
+    }
+    
+    return 0;
+}
+```
 gcc -o your_app your_app.c $(pkg-config --cflags --libs conduit)
 ```
 

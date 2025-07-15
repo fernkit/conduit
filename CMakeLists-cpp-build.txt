@@ -17,13 +17,13 @@ endif()
 set(LIBRARY_SOURCES
     src/conduit.cpp
     src/json_parser.cpp
-    # src/conduit_c_compat.cpp  # Disabled temporarily due to API changes
+    src/conduit_c_compat.cpp
 )
 
 # Define public headers
 set(PUBLIC_HEADERS
     include/conduit.hpp
-    # include/conduit_c_compat.h  # Disabled temporarily due to API changes
+    include/conduit_c_compat.h
 )
 
 # Create library target

@@ -61,6 +61,14 @@ ConduitResponse* conduit_receive_response(int sockfd);
  * @return 0 on success, negative value on error
  */
 int conduit_post_json(int sockfd, const char* hostname, const char* path, const char* json_body);
+
+/**
+ * @brief Free all memory allocated for a response
+ *
+ * @param response The response structure to free
+ */
+void conduit_free_response(ConduitResponse* response);
+
 #ifdef __cplusplus
 }
 #endif
