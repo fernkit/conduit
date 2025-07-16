@@ -186,11 +186,9 @@ int main() {
     
     return 0;
 }
-```
-gcc -o your_app your_app.c $(pkg-config --cflags --libs conduit)
-```
 
 ## Project Structure
+
 ```
 conduit/
 ├── include/          # Public header files
@@ -213,12 +211,7 @@ conduit/
 ```
 
 ## Building from Source
-```bash
-mkdir build
-cd build
-cmake ..
-make
-```
+
 ```bash
 mkdir build
 cd build
