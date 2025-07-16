@@ -84,7 +84,7 @@ int main() {
 #### C Version
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/conduit.git
+git clone https://github.com/fernkit/conduit.git
 cd conduit
 
 # Run the C installation script
@@ -94,7 +94,7 @@ cd conduit
 #### C++ Version
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/conduit.git
+git clone https://github.com/fernkit/conduit.git
 cd conduit
 
 # Run the C++ installation script
