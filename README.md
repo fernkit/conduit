@@ -122,8 +122,6 @@ make
 sudo make install
 sudo ldconfig  # Linux only
 ```
-sudo ldconfig  # Linux only
-```
 
 ## Usage Examples
 
