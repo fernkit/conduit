@@ -14,7 +14,7 @@ const char* get_error_message(ErrorCode code){
             return "Buffer Overflowed";
         case ERR_RECEIVING_DATA:
             return "Error Revieving data";
-        defualt: 
+        default: 
             return "Unknown Error";
     }
 }
