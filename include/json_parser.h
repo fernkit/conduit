@@ -12,7 +12,7 @@ typedef enum {
 
 typedef struct JsonObject JsonObject; 
 typedef struct JsonValue JsonValue;
-// forward decleration for, circular dependencies
+// forward declaration for, circular dependencies
 
 struct JsonValue {
     JsonType type;
